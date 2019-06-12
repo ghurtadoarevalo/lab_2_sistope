@@ -1,3 +1,5 @@
+#ifndef STRUCTS_H
+#define STRUCTS_H
 #include <pthread.h>
 
 //Estructura que se utiliza para almacenar una visibilidad
@@ -10,28 +12,26 @@ typedef struct {
 	int status;
 } visibility_s;
 
-typedef struct 
-{
-    char *fp_source_name;
-    int radio;
-    int width;
-    int flag;
-    monitor ** discs; 
-}producerData;
-
 typedef struct
 {
     visibility_s **buffer;
     int in;
-    int out;
     int bufferSize;
     int quantityPReal;
     int quantityPImaginary;
-    double pReal
+    double pReal;
     double pImaginary;
     double pPotency;
     double pNoise;
-    pthread_cond_t notfull;
-    pthread_cond_t notempty;
-    pthread_mutex_t mutex;
+    pthread_cond_t notfull_cond;
+    pthread_cond_t full_cond;
+    pthread_mutex_t mutex; //EM
+    pthread_mutex_t notfull_mutex;
+    pthread_mutex_t full_mutex;
+    int end;
+
 } monitor;
+
+
+
+#endif
