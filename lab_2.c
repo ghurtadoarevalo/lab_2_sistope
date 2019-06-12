@@ -102,6 +102,7 @@ void * readData(void * data)
         exit(-1);
     }
 
+
     int * radioList = malloc(sizeof(int)*radio+1); // radioList = [0, R1, R2, R3,..., Rn] -> n = numero de radios
 
     for (int i = 0; i < radio+1; ++i)
