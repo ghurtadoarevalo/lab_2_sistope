@@ -12,7 +12,7 @@ typedef struct {
 
 typedef struct 
 {
-    char * fp_source_name;
+    char *fp_source_name;
     int radio;
     int width;
     int flag;
@@ -21,10 +21,17 @@ typedef struct
 
 typedef struct
 {
-    visibility_s ** buffer;
-    int in, out, bufferSize;
-    double pReal, pImaginary, pPotency, pNoise;
-    int quantityPReal, quantityPImaginary;
-    pthread_cond_t notfull, notempty;
+    visibility_s **buffer;
+    int in;
+    int out;
+    int bufferSize;
+    int quantityPReal;
+    int quantityPImaginary;
+    double pReal
+    double pImaginary;
+    double pPotency;
+    double pNoise;
+    pthread_cond_t notfull;
+    pthread_cond_t notempty;
     pthread_mutex_t mutex;
 } monitor;

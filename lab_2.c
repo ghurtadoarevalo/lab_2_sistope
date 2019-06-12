@@ -41,7 +41,7 @@ float distance(visibility_s * visibility)
 
 void * consume(void * disc)
 {
-    monitor * disc_consumer = (monitor *) disc_consumer;
+    monitor * disc_consumer = (monitor *) disc;
     //El hijo se mantiene escuchando hasta que llega una visibilidad con solo ceros, la cual es la manera de salir del ciclo.
     
     do{
@@ -58,7 +58,7 @@ void * consume(void * disc)
       
 }
 
-void * readData(void * data)
+void * readData(void * pData)
 {
     producerData * pData = (producerData*)data; 
     FILE* fp;
@@ -100,8 +100,8 @@ void * readData(void * data)
                 {
                     pthread_cond_wait(notfull,discs[i]->mutex);
                 }
-                discs[i]->buffer[in] = visibility;
-                in++;
+                discs[i]->buffer[discs[i]->in] = visibility;
+                (discs[i]->in)++;
                 pthread_mutex_unlock(discs[i]->mutex);
             }
 
@@ -112,8 +112,8 @@ void * readData(void * data)
                 {
                     pthread_cond_wait(notfull,discs[i+1]->mutex);
                 }
-                discs[i+1]->buffer[in] = visibility;
-                in++;
+                discs[i+1]->buffer[discs[i]->in] = visibility;
+                (discs[i]->in)++;
                 pthread_mutex_unlock(discs[i+1]->mutex);                
                 break;
             }
@@ -123,6 +123,8 @@ void * readData(void * data)
 
          /* End  childs */
     }
+
+    fclose(fb);
 }
 
 int main(int argc, char *argv[])
