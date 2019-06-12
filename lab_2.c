@@ -1,36 +1,8 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "function.c"
 
-
-//Estructura que se utiliza para almacenar una visibilidad
-typedef struct {
-	float u;
-	float v;
-	float r;
-	float i;
-	float w;
-	int status;
-} visibility_s;
-
-typedef struct 
-{
-    char * fp_source_name;
-    int radio;
-    int width;
-    int flag;
-    monitor ** discs; 
-}producerData;
-
-typedef struct
-{
-    visibility_s * buffer;
-    int in, out, bufferSize;
-    double pReal, pImaginary, pPotency, pNoise;
-    int quantityPReal, quantityPImaginary;
-    pthread_cond_t notfull, notempty;
-    pthread_mutex_t mutex;
-} monitor;
 
 //Función que tomando una línea del archivo .csv genera una estructura llamada visiblidad
 //la cual contiene U, V , R, I y W, además un status para saber si fue leido o no por algún hijo.
@@ -57,23 +29,6 @@ visibility_s * buildVisibility(char * readedData)
     return visibility;
 }
 
-void *producer(void *arg)
-{
-    int v;
-    buffer_t *buffer;
-    buffer = (buffer_t *) arg;
-    while (true) {
-    v = produce();
-    pthread_mutex_lock (&buffer->mutex);
-    while (buffer->full) {
-        pthread_cond_wait (&buffer->notFull, &buffer->mutex);
-    }
-    put_in_buffer(buffer, v);
-    pthread_cond_signal(&buffer->notEmpty);
-    pthread_mutex_unlock(&buffer->mutex);
-    }
-}
-
 //Función que calcula una distancia (norma) utilizando U y V del vector.
 //Entrada: Estructura visibilidad.
 //Salida: La distancia calculada como un flotante.
@@ -82,6 +37,25 @@ float distance(visibility_s * visibility)
     float distance = 0;
     distance = sqrt(pow(visibility->u,2) + pow(visibility->v,2));
     return distance; 
+}
+
+void * consume(void * disc)
+{
+    monitor * disc_consumer = (monitor *) disc_consumer;
+    //El hijo se mantiene escuchando hasta que llega una visibilidad con solo ceros, la cual es la manera de salir del ciclo.
+    
+    do{
+        pthread_mutex_lock(disc_consumer->mutex);
+        partialRealAverage(disc_consumer);
+        partialImaginaryAverage(disc_consumer);
+        partialNoise(disc_consumer);
+        partialPotency(disc_consumer);
+        disc_consumer->in = 0;
+        pthread_mutex_unlock(disc_consumer->mutex);
+
+    }while(!(visibility->u == 0.f && visibility->v == 0.f && visibility->r == 0.f && visibility->i == 0.f && visibility->w == 0.f));
+
+      
 }
 
 void * readData(void * data)

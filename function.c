@@ -2,49 +2,57 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include "function.h"
+#include "structs.h"
 
-float partialRealAverage(visibility_s *buffer, int lenBuffer, int *quantityPReal, double realAverage)
+void partialRealAverage(monitor * disc)
 {
+    int lenBuffer = disc->bufferSize;
+    int quantityPReal = disc->quantityPReal;
+    int realAverage = disc->pReal;
+
 	float newAverage = realAverage * (*quantityPReal);
 
 	for(int i = 0; i < lenBuffer; i++)
-		newAverage = newAverage + buffer[i]->r; 
+		newAverage = newAverage + disc->buffer[i]->r; 
 
-	*quantityPReal = *quantityPReal + lenBuffer;
- 	return newAverage/quantityPReal; 
+	disc->quantityPReal = quantityPReal + lenBuffer;
+    disc->pReal = newAverage/quantityPReal;
 }
 
-
-float partialImaginaryAverage(visibility_s *buffer, int lenBuffer, int *quantityPImaginary, double imaginaryAverage)
+void partialImaginaryAverage(monitor * disc)
 {
+    int lenBuffer = disc->bufferSize;
+    int quantityPImaginaty = disc->quantityPImaginary;
+    int imaginaryAverage = disc->pImaginary;
+
 	float newAverage = imaginaryAverage * (*quantityPImaginary);
 
 	for(int i = 0; i < lenBuffer; i++)
-		newAverage = newAverage + buffer[i]->i; 
+		newAverage = newAverage + disc->buffer[i]->i; 
 	
-	*quantityPImaginary = *quantityPImaginary + lenBuffer;
- 	return newAverage/quantityPReal; 
+    disc->quantityPImaginary = quantityPImaginary + lenBuffer;
+    disc->pImaginary = newAverage/quantityPImaginary;
+}
+
+void partialPotency(monitor * disc)
+{
+    
+	float newPotency = disc->pPotency;
+    int lenBuffer = disc->bufferSize;
+	for(int i = 0; i < lenBuffer; i++)
+		newPotency = newPotency + sqr(pow(disc->buffer[i]->r, 2) + pow(disc->buffer[i]->i, 2));
+    disc->pPotency = newPotency;
 }
 
 
-float partialPotency(visibility_s *buffer, int lenBuffer, double potencyAverage)
+void partialNoise(monitor * disc)
 {
-	float newPotency = potencyAverage;
+	float newNoise = disc->pPotency;
+    int lenBuffer = disc->bufferSize;
 
 	for(int i = 0; i < lenBuffer; i++)
-		newPotency = newPotency + sqr(pow(buffer[i]->r, 2) + pow(buffer[i]->i, 2));
-
-	return newPotency;
-}
-
-
-float partialNoise(visibility_s *buffer, int lenBuffer, double noiseAverage)
-{
-	float newNoise = noiseAverage;
-
-	for(int i = 0; i < lenBuffer; i++)
-		newNoise = newNoise + buffer[i]->w;
-
-	return newNoise;
+		newNoise = newNoise + disc->buffer[i]->w;
+    disc->pNoise = newNoise;
 }
 
