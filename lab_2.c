@@ -120,17 +120,26 @@ void * readData(void * data)
         {
             if(radioList[i] <= origin_distance && origin_distance < radioList[i+1])
             {
-                pthread_mutex_lock(discs[i]->mutex;
-                if (discs[i]->)
+                pthread_mutex_lock(discs[i]->mutex);
+                if (discs[i]->bufferSize == discs[i]->in)
                 {
-                    /* code */
+                    pthread_cond_wait(notfull,discs[i]->mutex);
                 }
-                
+                discs[i]->buffer[in] = visibility;
+                in++;
+                pthread_mutex_unlock(discs[i]->mutex);
             }
 
             else if(i == radio -1 && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
             { 
-                write(childsData->childs[i+1]->fd_right[1], visibility, sizeof(visibility_s));
+                pthread_mutex_lock(discs[i+1]->mutex);
+                if (discs[i+1]->bufferSize == discs[i+1]->in)
+                {
+                    pthread_cond_wait(notfull,discs[i+1]->mutex);
+                }
+                discs[i+1]->buffer[in] = visibility;
+                in++;
+                pthread_mutex_unlock(discs[i+1]->mutex);                
                 break;
             }
 
