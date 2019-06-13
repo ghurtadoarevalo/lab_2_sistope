@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <ctype.h>
 
 int end = 0;
 
@@ -51,7 +53,7 @@ float distance(visibility_s * visibility);
 
 void * consume(void * disc);
 
-void * readData(int radio, int width, int flag, char * fp_source_name, monitor ** discs);
+void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** discs);
 
 void partialRealAverage(monitor * disc)
 {
@@ -177,14 +179,14 @@ void * consume(void * disc)
     }while(!(end == 0));
 }
 
-void * readData(int radio, int width, int flag, char * fp_source_name, monitor ** discs)
+void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** discs)
 {
     FILE* fp;
     char buf[1024];
     int i;
     float origin_distance;
 
-    if ((fp = fopen(fp_source_name, "r")) == NULL)
+    if ((fp = fopen(nameFileIn, "r")) == NULL)
     { 
         perror("fopen source-file");
         exit(-1);
@@ -250,19 +252,14 @@ void * readData(int radio, int width, int flag, char * fp_source_name, monitor *
     fclose(fp);
 }
 
-int main(int argc, char *argv[])
+monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
 {
-    printf("holaaa\n");   
-    int radio = 3, width = 50, flag = 0, bufferSize = 3-1;
-    char* fp_source_name = "text.csv";
     monitor ** monitors = malloc(sizeof(monitor)*(radio+1));
-
-    printf("holaaa\n");   
-
+    monitor * mon;
 
     for (int i = 0; i < (radio+1); i++)
     {
-        monitor * mon = malloc(sizeof(monitor));
+        mon = malloc(sizeof(monitor));
         mon->buffer = malloc(sizeof(visibility_s)*bufferSize);
         mon->in = 0;
         mon->bufferSize = bufferSize;
@@ -282,8 +279,40 @@ int main(int argc, char *argv[])
         monitors[i] = mon;
     }
 
-    printf("holaaa\n");   
+    return monitors;
+}
 
+
+
+
+int main(int argc, char *argv[])
+{    
+    int otp = 0, radio = 0, width = 0, flag = 0, bufferSize = 0;
+    char *nameFileIn = NULL, *nameFileOut = NULL;
+
+    while((otp = getopt(argc, argv, ":i:o:n:d:s:b")) != -1)
+    {
+        if(otp == 'i') nameFileIn = optarg;
+        else if(otp == 'o') nameFileOut = optarg;
+        else if(otp == 'n') radio = atoi(optarg)-1;
+        else if(otp == 'd') width = atoi(optarg);
+        else if(otp == 's') bufferSize = 1;
+        else if(otp == 'b') flag = 1;
+        else
+        {
+            perror("Invalid Sintaxis");
+            exit(-1);
+        }
+    }
+
+    if((otp == -1 && argc == 1) || radio <= 0 || width <= 0 || bufferSize <= 0)
+    {
+       perror("Invalid Sintaxis");
+        exit(-1); 
+    }
+
+    monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
+    
     pthread_t * disc_threads;
     disc_threads = malloc(sizeof(pthread_t)*(radio+1));
     for (int i = 0; i < (radio+1); i++)
@@ -291,10 +320,8 @@ int main(int argc, char *argv[])
         pthread_create(&disc_threads[i], NULL, consume, (void *)monitors[i]);
     }
 
-    readData(radio,width,flag, fp_source_name, monitors);
-    printf("\n\nsaaaaaaaaaaaaaaaaaaliiiiiiiiii\n\n");
+    readData(radio,width,flag, nameFileIn, monitors);
     end = 1;
-    printf("\n\nsaaaaaaaaaaaaaaaaaaliiiiiiiiii222222222222222\n\n");
     for (int i = 0; i < (radio + 1); i++)
     {
         pthread_cond_signal(&(monitors[i]->notfull_cond));
