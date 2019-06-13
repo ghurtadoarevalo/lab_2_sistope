@@ -316,13 +316,10 @@ monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, cha
 }
 
 
-
-
 int main(int argc, char *argv[])
 {    
     int otp = 0, radio = 0, width = 0, flag = 0, bufferSize = 0;
     char *nameFileIn = NULL, *nameFileOut = NULL;
-
     while((otp = getopt(argc, argv, ":i:o:n:d:s:b")) != -1)
     {
         if(otp == 'i') nameFileIn = optarg;
@@ -345,7 +342,8 @@ int main(int argc, char *argv[])
     }
 
     monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
-    
+    float ** discs_properties = malloc(sizeof(float*)*(radio+1));
+
     pthread_t * disc_threads;
     disc_threads = malloc(sizeof(pthread_t)*(radio+1));
     for (int i = 0; i < (radio+1); i++)
