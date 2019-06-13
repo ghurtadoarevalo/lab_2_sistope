@@ -285,7 +285,6 @@ void writeData(int number, float *results, char *outFileName)
 	fclose(file);
 }
 
-int main(int argc, char *argv[])
 monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
 {
     monitor ** monitors = malloc(sizeof(monitor)*(radio+1));
