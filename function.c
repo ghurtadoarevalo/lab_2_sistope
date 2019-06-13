@@ -1,8 +1,10 @@
+#include "function.h"
+#include "structs.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
-#include "function.h"
 
 void partialRealAverage(monitor * disc)
 {
@@ -111,8 +113,6 @@ void * consume(void * disc)
         pthread_mutex_unlock(&(disc_consumer->mutex));
 
     }while(!(disc_consumer->end == 0));
-
-      
 }
 
 void * readData(int radio, int width, int flag, char * fp_source_name, monitor ** discs)
