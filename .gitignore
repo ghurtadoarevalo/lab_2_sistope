@@ -32,3 +32,4 @@
 *.dSYM/
 
 .vscode
+*.code-workspace

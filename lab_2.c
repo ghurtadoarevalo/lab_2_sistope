@@ -8,6 +8,7 @@
 
 int end = 0;
 float ** discs_properties;
+int flag;
 
 typedef struct {
 	float u;
@@ -35,8 +36,7 @@ typedef struct
     pthread_mutex_t mutex; //EM
     pthread_mutex_t notfull_mutex;
     pthread_mutex_t full_mutex;
-    int end;
-
+    int quantityProcessed;
 } monitor;
 
 void partialRealAverage(monitor * disc);
@@ -86,16 +86,17 @@ void partialImaginaryAverage(monitor * disc)
 
 void partialPotency(monitor * disc)
 {
-
-	for(int i = 0; i < disc->in; i++)
-		disc->pPotency = disc->pPotency + sqrt(pow(disc->buffer[i]->r, 2) + pow(disc->buffer[i]->i, 2));
+	for(int i = 0; i < disc->in; i++){
+        printf("Soy r: %f, soy i:  \n\n",sqrt(pow(disc->pPotency,2) + pow(disc->buffer[i]->r, 2) + pow(disc->buffer[i]->i, 2)));
+		disc->pPotency =  sqrt(pow(disc->pPotency,2) + pow(disc->buffer[i]->r, 2) + pow(disc->buffer[i]->i, 2));
+    }
 }
 
 
 void partialNoise(monitor * disc)
 {
 	for(int i = 0; i < disc->in; i++)
-		disc->pPotency = disc->pPotency + disc->buffer[i]->w;
+		disc->pNoise = disc->pNoise + disc->buffer[i]->w;
 }
 
 //Función que tomando una línea del archivo .csv genera una estructura llamada visiblidad
@@ -142,7 +143,7 @@ void * consume(void * disc)
 
     do{
         pthread_mutex_lock(&(disc_consumer->mutex));
-        //printf("Soy disc con in: %d\n", disc_consumer->in);
+        printf("Soy disc con in: %d y bufferSize: %d\n", disc_consumer->in, disc_consumer->bufferSize);
         if (disc_consumer->in != disc_consumer->bufferSize)
         {
             printf("\n\nAAAAAAAAAAAAAAn ID: %d\n\n", disc_consumer->id);
@@ -152,6 +153,7 @@ void * consume(void * disc)
 
         if(end == 1)
         {
+            disc_consumer->quantityProcessed += disc_consumer->in;
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
             partialNoise(disc_consumer);
@@ -159,17 +161,21 @@ void * consume(void * disc)
             
             printf("\n\nAAAAAAAAAAA22222222222AAAn ID: %d\n", disc_consumer->id);
             
-
             float * properties = malloc(sizeof(float)*4);
             properties[0] = disc_consumer->pReal;
             properties[1] = disc_consumer->pImaginary;
-            properties[2] = disc_consumer->pNoise;
-            properties[3] = disc_consumer->pPotency;
+            properties[2] = disc_consumer->pPotency;
+            properties[3] = disc_consumer->pNoise;
             discs_properties[disc_consumer->id] = properties;
+
+            if (flag == 1)
+            {
+                printf("Soy el hijo de pid %d, procese %d visibilidades\n", disc_consumer->id, disc_consumer->quantityProcessed);
+            }
 
             break;
         }
-
+            disc_consumer->quantityProcessed += disc_consumer->in;
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
             partialNoise(disc_consumer);
@@ -234,7 +240,7 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
                     pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
                 }
                 discs[i]->buffer[discs[i]->in] = visibility;
-                discs[i]->in = discs[i]->in + 1;
+                discs[i]->in += 1;
                 pthread_mutex_unlock(&(discs[i]->mutex));
             }
 
@@ -249,7 +255,7 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
                     pthread_cond_wait(&(discs[i+1]->full_cond),&(discs[i+1]->full_mutex));
                 }
                 discs[i+1]->buffer[discs[i+1]->in] = visibility;
-                discs[i+1]->in = discs[i+1]->in + 1;
+                discs[i+1]->in += 1;
                 pthread_mutex_unlock(&(discs[i+1]->mutex));           
                 break;
             }
@@ -302,7 +308,6 @@ monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, cha
         mon->pPotency = 0;
         mon->pReal = 0;
         mon->pImaginary = 0;
-        mon->end = 0;
         mon->id = i;
         pthread_cond_init(&mon->notfull_cond, NULL);
         pthread_cond_init(&mon->full_cond, NULL);
@@ -318,15 +323,16 @@ monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, cha
 
 int main(int argc, char *argv[])
 {    
-    int otp = 0, radio = 0, width = 0, flag = 0, bufferSize = 0;
+    int otp = 0, radio = 0, width = 0, bufferSize = 0;
+    flag = 0;
     char *nameFileIn = NULL, *nameFileOut = NULL;
     while((otp = getopt(argc, argv, ":i:o:n:d:s:b")) != -1)
     {
         if(otp == 'i') nameFileIn = optarg;
         else if(otp == 'o') nameFileOut = optarg;
-        else if(otp == 'n') radio = atoi(optarg)-1;
+        else if(otp == 'n') radio = atoi(optarg);
         else if(otp == 'd') width = atoi(optarg);
-        else if(otp == 's') bufferSize = 1;
+        else if(otp == 's') bufferSize = atoi(optarg);
         else if(otp == 'b') flag = 1;
         else
         {
@@ -342,7 +348,7 @@ int main(int argc, char *argv[])
     }
 
     monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
-    float ** discs_properties = malloc(sizeof(float*)*(radio+1));
+    discs_properties = malloc(sizeof(float*)*(radio+1));
 
     pthread_t * disc_threads;
     disc_threads = malloc(sizeof(pthread_t)*(radio+1));
@@ -368,7 +374,6 @@ int main(int argc, char *argv[])
     for (int i = 0; i < (radio + 1); i++)
     {
         writeData(i, discs_properties[i],nameFileOut);
-        printf("holaaaa");
     }
     
     return 0;
