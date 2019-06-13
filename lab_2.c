@@ -7,7 +7,7 @@
 #include <ctype.h>
 
 int end = 0;
-
+float ** discs_properties;
 
 typedef struct {
 	float u;
@@ -145,38 +145,50 @@ void * consume(void * disc)
         //printf("Soy disc con in: %d\n", disc_consumer->in);
         if (disc_consumer->in != disc_consumer->bufferSize)
         {
+            printf("\n\nAAAAAAAAAAAAAAn ID: %d\n\n", disc_consumer->id);
             pthread_mutex_unlock(&(disc_consumer->mutex));
             pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->notfull_mutex));
         }
 
-        if (end == 0)
-        {
-            partialRealAverage(disc_consumer);
-            partialImaginaryAverage(disc_consumer);
-            partialNoise(disc_consumer);
-            partialPotency(disc_consumer);
-
-            disc_consumer->in = 0;
-            pthread_cond_signal(&(disc_consumer->full_cond));
-            pthread_mutex_unlock(&(disc_consumer->mutex));
-
-            printf("preal: %f\n",disc_consumer->pReal);
-            printf("pimaginary: %f\n",disc_consumer->pImaginary);
-            printf("pnoise: %f\n",disc_consumer->pNoise);
-            printf("ppotency: %f\n",disc_consumer->pPotency);
-        }
-
-        else
+        if(end == 1)
         {
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
             partialNoise(disc_consumer);
             partialPotency(disc_consumer);
             
+            printf("\n\nAAAAAAAAAAA22222222222AAAn ID: %d\n", disc_consumer->id);
+            
+
+            float * properties = malloc(sizeof(float)*4);
+            properties[0] = disc_consumer->pReal;
+            properties[1] = disc_consumer->pImaginary;
+            properties[2] = disc_consumer->pNoise;
+            properties[3] = disc_consumer->pPotency;
+            discs_properties[disc_consumer->id] = properties;
+
             break;
         }
 
-    }while(!(end == 0));
+            partialRealAverage(disc_consumer);
+            partialImaginaryAverage(disc_consumer);
+            partialNoise(disc_consumer);
+            partialPotency(disc_consumer);
+            //printf("\n\nAAAAAAAAAAAAAAn ID: %d\n", disc_consumer->id);
+
+            disc_consumer->in = 0;
+
+
+            printf("preal: %f\n",disc_consumer->pReal);
+            printf("pimaginary: %f\n",disc_consumer->pImaginary);
+            printf("pnoise: %f\n",disc_consumer->pNoise);
+            printf("ppotency: %f\n",disc_consumer->pPotency);
+        
+
+            pthread_cond_signal(&(disc_consumer->full_cond));
+            pthread_mutex_unlock(&(disc_consumer->mutex));
+
+    }while(end == 0);
 }
 
 void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** discs)
@@ -217,7 +229,6 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
                 pthread_mutex_lock(&(discs[i]->mutex));
                 if (discs[i]->bufferSize == discs[i]->in)
                 {
-                    printf("Entreeeeeeeeeeeee\n");
                     pthread_mutex_unlock(&(discs[i]->mutex));
                     pthread_cond_signal(&(discs[i]->notfull_cond));
                     pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
@@ -252,6 +263,29 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
     fclose(fp);
 }
 
+//Funcion que crea un archivo con el nombre del string entrante.
+//Entrada: Nombre del archivo de salida.
+//Salida: Ninguna.
+void createOutFile(char *outFileName)
+{
+    FILE *file = fopen(outFileName, "w");
+    fclose(file);
+}
+
+//Función que escribe los resultados de los discos en el archivo de salida.
+//Entrada: numero de disco, lista con los resultados del disco, nombre del archivo de salida.
+//Salida: Ninguna.
+void writeData(int number, float *results, char *outFileName)
+{
+	FILE *file = fopen(outFileName, "a");
+	
+	fprintf(file, "Disco %d:\nMedia real: %f\nMedia imaginaria: %f\nPotencia: %f\nRuido total: %f\n",
+		number, results[0], results[1], results[2], results[3]);
+
+	fclose(file);
+}
+
+int main(int argc, char *argv[])
 monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
 {
     monitor ** monitors = malloc(sizeof(monitor)*(radio+1));
@@ -326,7 +360,19 @@ int main(int argc, char *argv[])
     {
         pthread_cond_signal(&(monitors[i]->notfull_cond));
         pthread_join(disc_threads[i], NULL);
+        printf("asdasddassd: %d\n\n", i);
     }
 
+    createOutFile(nameFileOut);
+
+    //discs_properties[0];
+    //printf("aaaaaaaa: %f", discs_properties[0][0]);
+
+    for (int i = 0; i < (radio + 1); i++)
+    {
+        writeData(i, discs_properties[i],nameFileOut);
+        printf("holaaaa");
+    }
+    
     return 0;
 }
