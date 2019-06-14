@@ -148,15 +148,21 @@ void * consume(void * disc)
     //printf("Soy disc con id: %d, con in: %d y bufferSize: %d\n",disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize);
 
     do{
-        printf("Soy disc con id: %d, con in: %d y bufferSize: %d\n",disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize);
 
-        if(disc_consumer->in != disc_consumer->bufferSize)
+        if(disc_consumer->in != (disc_consumer->bufferSize)-1)
         {
+            //printf("a1\n\n");
             disc_consumer->blocked = 1;
             pthread_mutex_unlock(&(mutex));
+            //printf("a2\n\n");
             pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->notfull_mutex));
+            //printf("a3\n\n");
+
             disc_consumer->blocked = 0;
         }
+
+        //printf("a4\n\n");
+
 
         if(end == 1)
         {
@@ -189,6 +195,10 @@ void * consume(void * disc)
 
             break;
         }
+
+            printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
+
+
             disc_consumer->quantityProcessed += disc_consumer->in;
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
@@ -246,19 +256,23 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
 
             if(radioList[i] <= origin_distance && origin_distance < radioList[i+1])
             {
-                printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i);
+                printf("Produje para el disco: %d\n",i);
                 if (discs[i]->bufferSize == discs[i]->in)
                 {
+                    //printf("b1\n\n");
                     pthread_mutex_unlock(&(mutex));
+                    //printf("b2\n\n");
                     pthread_cond_signal(&(discs[i]->notfull_cond));
+                    //printf("b3\n\n");
                     pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
+                    //printf("b4\n\n");
                 }
                 discs[i]->buffer[discs[i]->in] = visibility;
                 discs[i]->in += 1;
             }
 
             else if(i == radio -1 && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
-            { 
+            {   
                 //printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i+1);
                 if (discs[i+1]->bufferSize == discs[i+1]->in)
                 {
@@ -353,7 +367,6 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
-
     if((otp == -1 && argc == 1) || radio <= 0 || width <= 0 || bufferSize <= 0)
     {
        perror("Invalid Sintaxis");
@@ -374,6 +387,7 @@ int main(int argc, char *argv[])
     readData(radio,width,flag, nameFileIn, monitors);
     end = 1;
     printf("terminé\n");
+    exit(1);
     int blockeds;
     while(1)
     {
