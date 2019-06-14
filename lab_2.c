@@ -149,7 +149,7 @@ void * consume(void * disc)
 
     do{
 
-        if(disc_consumer->in != (disc_consumer->bufferSize)-1)
+        if(disc_consumer->in != disc_consumer->bufferSize)
         {
             //printf("a1\n\n");
             disc_consumer->blocked = 1;
@@ -196,7 +196,7 @@ void * consume(void * disc)
             break;
         }
 
-            printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
+            //printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
 
 
             disc_consumer->quantityProcessed += disc_consumer->in;
@@ -236,9 +236,9 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
         exit(-1);
     }
 
-    int * radioList = malloc(sizeof(int)*radio+1); // radioList = [0, R1, R2, R3,..., Rn] -> n = numero de radios
+    int * radioList = malloc(sizeof(int)*(radio + 1)); // radioList = [0, R1, R2, R3,..., Rn] -> n = numero de radios
 
-    for (int i = 0; i < radio+1; ++i)
+    for (int i = 0; i <= radio; ++i)
         radioList[i] = i*width;
    
     while (fgets(buf, sizeof(buf), fp) != NULL)
@@ -256,8 +256,8 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
 
             if(radioList[i] <= origin_distance && origin_distance < radioList[i+1])
             {
-                printf("Produje para el disco: %d\n",i);
-                if (discs[i]->bufferSize == discs[i]->in)
+                //printf("Produje para el disco: %d\n",i);
+                if ((discs[i]->bufferSize - 1) == discs[i]->in)
                 {
                     //printf("b1\n\n");
                     pthread_mutex_unlock(&(mutex));
@@ -267,14 +267,15 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
                     pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
                     //printf("b4\n\n");
                 }
+                printf("******** disc[%d]->in = %d ********\n", i, discs[i]->in);
                 discs[i]->buffer[discs[i]->in] = visibility;
                 discs[i]->in += 1;
             }
 
-            else if(i == radio -1 && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
+            else if(i == (radio - 1) && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
             {   
                 //printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i+1);
-                if (discs[i+1]->bufferSize == discs[i+1]->in)
+                if ((discs[i+1]->bufferSize - 1) == discs[i+1]->in)
                 {
                     pthread_mutex_unlock(&(mutex));
                     pthread_cond_signal(&(discs[i+1]->notfull_cond))    ;
@@ -320,10 +321,10 @@ void writeData(int number, float *results, char *outFileName)
 
 monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
 {
-    monitor ** monitors = malloc(sizeof(monitor)*(radio));
+    monitor ** monitors = malloc(sizeof(monitor)*(radio + 1));
     monitor * mon;
 
-    for (int i = 0; i < (radio+1); i++)
+    for (int i = 0; i <= radio; i++)
     {
         mon = malloc(sizeof(monitor));
         mon->buffer = malloc(sizeof(visibility_s)*bufferSize);
@@ -375,11 +376,11 @@ int main(int argc, char *argv[])
 
     pthread_mutex_init(&mutex, NULL);
     monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
-    discs_properties = malloc(sizeof(float*)*(radio));
+    discs_properties = malloc(sizeof(float*)*(radio + 1));
 
     pthread_t * disc_threads;
-    disc_threads = malloc(sizeof(pthread_t)*(radio));
-    for (int i = 0; i < (radio+1); i++)
+    disc_threads = malloc(sizeof(pthread_t)*(radio + 1));
+    for (int i = 0; i <= radio; i++)
     {
         pthread_create(&disc_threads[i], NULL, consume, (void *)monitors[i]);
     }
@@ -392,7 +393,7 @@ int main(int argc, char *argv[])
     while(1)
     {
         blockeds = 0;
-        for (int i = 0; i < (radio + 1); i++)
+        for (int i = 0; i <= radio; i++)
         {
 
             if (monitors[i]->blocked == 1)
@@ -401,9 +402,9 @@ int main(int argc, char *argv[])
             }
         }
             
-        if (blockeds == radio+1)
+        if (blockeds == (radio + 1))
         {
-            for (int i = 0; i < (radio + 1); i++)
+            for (int i = 0; i <= radio; i++)
             {
                 pthread_cond_signal(&(monitors[i]->notfull_cond));
                 pthread_join(disc_threads[i], NULL);
@@ -417,9 +418,9 @@ int main(int argc, char *argv[])
     //discs_properties[0];
     //printf("aaaaaaaa: %f", discs_properties[0][0]);
 
-    for (int i = 0; i < (radio + 1); i++)
+    for (int i = 0; i <= radio; i++)
     {
-        writeData(i, discs_properties[i],nameFileOut);
+        writeData(i+1, discs_properties[i],nameFileOut);
     }
     
     return 0;
