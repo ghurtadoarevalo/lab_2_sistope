@@ -1,6 +1,9 @@
 #ifndef FUNCTION
 #define FUNCTION
 
+// Prototipos de las Funciones. 
+//------------------------------------------------------------
+
 void partialRealAverage(monitor * disc);
 
 void partialImaginaryAverage(monitor * disc);
@@ -17,7 +20,7 @@ void * consume(void * disc);
 
 void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** discs);
 
-monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn);
+monitor **initializeMonitors(int radio, int bufferSize);
 
 void writeData(int number, float *results, char *outFileName);
 

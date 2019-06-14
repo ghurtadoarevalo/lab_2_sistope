@@ -2,8 +2,13 @@
 #include "global_variables.h"
 #include "function.h"
 
+//Definición variable global. 
+//------------------------------------------------------------
 int end;
 
+//Definición del la funcion main que hace el llamado general de funciones para el
+//funcionamiento del programa.
+//------------------------------------------------------------
 int main(int argc, char *argv[])
 {    
     end = 0;
@@ -32,12 +37,12 @@ int main(int argc, char *argv[])
     }
 
     pthread_mutex_init(&mutex, NULL);
-    monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
+    monitor ** monitors = initializeMonitors(radio, bufferSize);
     discs_properties = malloc(sizeof(float*)*(radio + 1));
 
     pthread_t * disc_threads;
     disc_threads = malloc(sizeof(pthread_t)*(radio + 1));
-    
+
     for (int i = 0; i <= radio; i++)
         pthread_create(&disc_threads[i], NULL, consume, (void *)monitors[i]);
 

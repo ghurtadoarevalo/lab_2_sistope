@@ -1,7 +1,5 @@
 #ifndef STRUCTS
 #define STRUCTS
-//Estructura que se utiliza para almacenar una visibilidad
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +8,7 @@
 #include <unistd.h>
 #include <ctype.h>
 
-
+//Estructura que se utiliza para almacenar una visibilidad
 typedef struct {
 	float u;
 	float v;
@@ -20,6 +18,7 @@ typedef struct {
 	int status;
 } visibility_s;
 
+//Estructura que se utiliza almacenar, crear y representar un monitor
 typedef struct
 {
     visibility_s **buffer;
