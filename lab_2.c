@@ -155,7 +155,8 @@ void * consume(void * disc)
             disc_consumer->blocked = 1;
             pthread_mutex_unlock(&(mutex));
             //printf("a2\n\n");
-            pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->notfull_mutex));
+            pthread_cond_signal(&(disc_consumer->full_cond));
+            pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->full_mutex));
             //printf("a3\n\n");
 
             disc_consumer->blocked = 0;
@@ -197,7 +198,6 @@ void * consume(void * disc)
         }
 
             //printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
-
 
             disc_consumer->quantityProcessed += disc_consumer->in;
             partialRealAverage(disc_consumer);
@@ -387,15 +387,13 @@ int main(int argc, char *argv[])
 
     readData(radio,width,flag, nameFileIn, monitors);
     end = 1;
-    printf("terminé\n");
-    exit(1);
+
     int blockeds;
     while(1)
     {
         blockeds = 0;
         for (int i = 0; i <= radio; i++)
         {
-
             if (monitors[i]->blocked == 1)
             {
                 blockeds++;
