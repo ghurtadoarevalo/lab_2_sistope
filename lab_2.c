@@ -37,10 +37,9 @@ int main(int argc, char *argv[])
 
     pthread_t * disc_threads;
     disc_threads = malloc(sizeof(pthread_t)*(radio + 1));
+    
     for (int i = 0; i <= radio; i++)
-    {
         pthread_create(&disc_threads[i], NULL, consume, (void *)monitors[i]);
-    }
 
     readData(radio,width,flag, nameFileIn, monitors);
     end = 1;
@@ -50,12 +49,7 @@ int main(int argc, char *argv[])
     {
         blockeds = 0;
         for (int i = 0; i <= radio; i++)
-        {
-            if (monitors[i]->blocked == 1)
-            {
-                blockeds++;
-            }
-        }
+            if (monitors[i]->blocked == 1) blockeds++;
             
         if (blockeds == (radio + 1))
         {
@@ -74,9 +68,7 @@ int main(int argc, char *argv[])
     //printf("aaaaaaaa: %f", discs_properties[0][0]);
 
     for (int i = 0; i <= radio; i++)
-    {
         writeData(i+1, discs_properties[i],nameFileOut);
-    }
     
     return 0;
 }

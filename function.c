@@ -2,8 +2,10 @@
 #include "global_variables.h"
 #include "function.h"
 
-int end;
 
+//Función que calcula la media real de todas las visibilidades obtenidas hasta el momento del llamado de la función.
+//Entrada: Lista de estructuras monitores.
+//Salida: Ninguna.
 void partialRealAverage(monitor * disc)
 {
     //printf("\n\nEntró ID: %d en partialRealAverage con disc->in: %d\n\n", disc->id, disc->in);
@@ -23,6 +25,10 @@ void partialRealAverage(monitor * disc)
     
 }
 
+
+//Función que calcula la media imaginaria de todas las visibilidades obtenidas hasta el momento del llamado de la función.
+//Entrada: Lista de estructuras monitores.
+//Salida: Ninguna.
 void partialImaginaryAverage(monitor * disc)
 {
     if (disc->in != 0)
@@ -37,6 +43,10 @@ void partialImaginaryAverage(monitor * disc)
     }
 }
 
+
+//Función que calcula la potencia de todas las visibilidades obtenidas hasta el momento del llamado de la función
+//Entrada: Lista de estructuras monitores.
+//Salida: Ninguna.
 void partialPotency(monitor * disc)
 {
     for(int i = 0; i < disc->in; i++){
@@ -45,11 +55,15 @@ void partialPotency(monitor * disc)
 }
 
 
+//Función que calcula el ruido de todas las visibilidades obtenidas hasta el momento del llamado de la función.
+//Entrada: Lista de estructuras monitores.
+//Salida: Ninguna.
 void partialNoise(monitor * disc)
 {
     for(int i = 0; i < disc->in; i++)
         disc->pNoise = disc->pNoise + disc->buffer[i]->w;
 }
+
 
 //Función que tomando una línea del archivo .csv genera una estructura llamada visiblidad
 //la cual contiene U, V , R, I y W, además un status para saber si fue leido o no por algún hijo.
@@ -76,6 +90,7 @@ visibility_s * buildVisibility(char * readedData)
     return visibility;
 }
 
+
 //Función que calcula una distancia (norma) utilizando U y V del vector.
 //Entrada: Estructura visibilidad.
 //Salida: La distancia calculada como un flotante.
@@ -85,6 +100,7 @@ float distance(visibility_s * visibility)
     distance = sqrt(pow(visibility->u,2) + pow(visibility->v,2));
     return distance; 
 }
+
 
 void * consume(void * disc)
 {
@@ -245,6 +261,7 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
     fclose(fp);
 }
 
+
 //Funcion que crea un archivo con el nombre del string entrante.
 //Entrada: Nombre del archivo de salida.
 //Salida: Ninguna.
@@ -253,6 +270,7 @@ void createOutFile(char *outFileName)
     FILE *file = fopen(outFileName, "w");
     fclose(file);
 }
+
 
 //Función que escribe los resultados de los discos en el archivo de salida.
 //Entrada: numero de disco, lista con los resultados del disco, nombre del archivo de salida.
@@ -267,7 +285,11 @@ void writeData(int number, float *results, char *outFileName)
     fclose(file);
 }
 
-monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
+
+//Función que genera tantos monitores como discos (radio + 1) e inicializa sus variables en valores convenienes.
+//Entrada: numero de disco, tamaño del buffer.
+//Salida: Estructura monitor.
+monitor **initializeMonitors(int radio, int bufferSize)
 {
     monitor ** monitors = malloc(sizeof(monitor)*(radio + 1));
     monitor * mon;
