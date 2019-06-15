@@ -37,8 +37,7 @@ typedef struct
     pthread_mutex_t notfull_mutex;
     pthread_mutex_t full_mutex;
     int quantityProcessed;
-    int full;
-    int not_full;
+    int inBackUp;
 } monitor;
 
 void partialRealAverage(monitor * disc);
@@ -154,7 +153,7 @@ void * consume(void * disc)
 
         //printf("blocked: %d de disco: %d\n\n", disc_consumer->blocked, disc_consumer->id);
 
-        while(disc_consumer->not_full)
+        while(disc_consumer->in != (disc_consumer->bufferSize)-1)
         {       
             //printf("Soy la hebra: %d, con disc_consumer->in: %d, buffersize-1: %d\n", disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize-1);
 
@@ -178,7 +177,8 @@ void * consume(void * disc)
         if(end == 1)
         {
             //printf("Soy la hebra asdsasadads: %d\n", disc_consumer->id);
-            disc_consumer->quantityProcessed += disc_consumer->in;
+            disc_consumer->quantityProcessed += disc_consumer->inBackUp;
+            disc_consumer->in = disc_consumer->inBackUp;
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
             partialNoise(disc_consumer);
@@ -217,8 +217,6 @@ void * consume(void * disc)
         //printf("\n\nAAAAAAAAAAAAAAn ID: %d\n", disc_consumer->id);
 
         disc_consumer->in = 0;
-        disc_consumer->not_full = 1;
-        disc_consumer->full = 0;
 
         //printf("\n\nSoy disc con id: %d y calculé: \n",disc_consumer->id);
         //printf("preal: %f\n",disc_consumer->pReal);
@@ -269,7 +267,7 @@ void * readData(int disco, int width, int flag, char * nameFileIn, monitor ** di
             {
                 pthread_mutex_lock(&(discs[i]->full_mutex));
                 //printf("Produje para el disco: %d\n",i);
-                while(discs[i]->full)
+                while((discs[i]->bufferSize)-1 == discs[i]->in)
                 {
                     //printf("b1\n\n");
                     //pthread_mutex_unlock(&(mutex));
@@ -282,13 +280,6 @@ void * readData(int disco, int width, int flag, char * nameFileIn, monitor ** di
                 //printf("******** disc[%d]->in = %d ********\n", i, discs[i]->in);
                 discs[i]->buffer[discs[i]->in] = visibility;
                 discs[i]->in += 1;
-                
-                if (discs[i]->in == discs[i]->bufferSize-1)
-                {
-                    discs[i]->full = 1;
-                    discs[i]->not_full = 0;
-                }
-                
                 //printf("Soy disc[i] con in = %d, con id: %d\n", discs[i]->in, discs[i]->id);
                 pthread_cond_signal(&(discs[i]->notfull_cond));
                 pthread_mutex_unlock(&(discs[i]->full_mutex));
@@ -300,7 +291,7 @@ void * readData(int disco, int width, int flag, char * nameFileIn, monitor ** di
                 pthread_mutex_lock(&(discs[i]->full_mutex));
 
                 //printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i);
-                while(discs[i]->full)
+                while((discs[i]->bufferSize)-1 == discs[i]->in)
                 {
                     //pthread_mutex_unlock(&(mutex));
                     //pthread_cond_signal(&(discs[i]->notfull_cond));
@@ -323,7 +314,8 @@ void * readData(int disco, int width, int flag, char * nameFileIn, monitor ** di
     end = 1;
     for (int i = 0; i < disco; i++)
     {
-        discs[i]->not_full = 0;
+        discs[i]->inBackUp = discs[i]->in; 
+        discs[i]->in = (discs[i]->bufferSize)-1;
         pthread_cond_signal(&(discs[i]->notfull_cond));
     }    
 
@@ -368,8 +360,6 @@ monitor ** initializeMonitors(int disco, int width, int flag, int bufferSize, ch
         mon->pReal = 0;
         mon->pImaginary = 0;
         mon->id = i;
-        mon->full = 0;
-        mon->not_full = 1;
         pthread_cond_init(&mon->notfull_cond, NULL);
         pthread_cond_init(&mon->full_cond, NULL);
         pthread_mutex_init(&mon->full_mutex, NULL);
