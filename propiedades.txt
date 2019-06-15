@@ -1,20 +1,20 @@
-Disco 0:
-Media real: -161.611893
-Media imaginaria: -17.043291
-Potencia: 23045.966797
-Ruido total: 24.575333
 Disco 1:
-Media real: 7.213607
-Media imaginaria: 2.443719
-Potencia: 9428.455078
-Ruido total: 72.353020
+Media real: -161.723312
+Media imaginaria: -17.041273
+Potencia: 23063.289062
+Ruido total: 24.581999
 Disco 2:
-Media real: -3.423513
-Media imaginaria: -2.935921
-Potencia: 10933.920898
-Ruido total: 95.637016
+Media real: 7.217821
+Media imaginaria: 2.447984
+Potencia: 9428.796875
+Ruido total: 72.362595
 Disco 3:
-Media real: -1.957511
-Media imaginaria: -0.215290
-Potencia: 14504.622070
-Ruido total: 211.925827
+Media real: -3.423318
+Media imaginaria: -2.930179
+Potencia: 10934.437500
+Ruido total: 95.645203
+Disco 4:
+Media real: -1.957004
+Media imaginaria: -0.216725
+Potencia: 14504.677734
+Ruido total: 211.932480

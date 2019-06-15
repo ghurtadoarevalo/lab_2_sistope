@@ -37,7 +37,8 @@ typedef struct
     pthread_mutex_t notfull_mutex;
     pthread_mutex_t full_mutex;
     int quantityProcessed;
-    int blocked;
+    int full;
+    int not_full;
 } monitor;
 
 void partialRealAverage(monitor * disc);
@@ -140,45 +141,54 @@ float distance(visibility_s * visibility)
 
 void * consume(void * disc)
 {
-    pthread_mutex_lock(&(mutex));
+    
     monitor * disc_consumer = (monitor *)disc;
     //El hijo se mantiene escuchando hasta que llega una visibilidad con solo ceros, la cual es la manera de salir del ciclo.
     
     //printf("Soy monitor ID: %d\n", disc_consumer->id);
     //printf("Soy disc con id: %d, con in: %d y bufferSize: %d\n",disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize);
 
-    do{
+    do
+    {
+        pthread_mutex_lock(&(disc_consumer->full_mutex));
 
-        if(disc_consumer->in != disc_consumer->bufferSize)
-        {
+        //printf("blocked: %d de disco: %d\n\n", disc_consumer->blocked, disc_consumer->id);
+
+        while(disc_consumer->not_full)
+        {       
+            //printf("Soy la hebra: %d, con disc_consumer->in: %d, buffersize-1: %d\n", disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize-1);
+
             //printf("a1\n\n");
-            disc_consumer->blocked = 1;
-            pthread_mutex_unlock(&(mutex));
+            //disc_consumer->blocked = 1;
+            //pthread_mutex_unlock(&(mutex));
             //printf("a2\n\n");
-            pthread_cond_signal(&(disc_consumer->full_cond));
-            pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->full_mutex));
-            //printf("a3\n\n");
+            //pthread_cond_signal(&(disc_consumer->full_cond));
+            //printf("blocked: %d de disco: %d\n\n", disc_consumer->blocked, disc_consumer->id);
 
-            disc_consumer->blocked = 0;
+            pthread_cond_wait(&(disc_consumer->notfull_cond), &(disc_consumer->full_mutex));
+            //printf("Soy la hebra: %d, con disc_consumer->in: %d, buffersize-1: %d\n", disc_consumer->id, disc_consumer->in, disc_consumer->bufferSize-1);
+
+            //printf("a3\n\n");
+            //disc_consumer->blocked = 0;
+
         }
 
         //printf("a4\n\n");
 
-
         if(end == 1)
         {
+            //printf("Soy la hebra asdsasadads: %d\n", disc_consumer->id);
             disc_consumer->quantityProcessed += disc_consumer->in;
             partialRealAverage(disc_consumer);
             partialImaginaryAverage(disc_consumer);
             partialNoise(disc_consumer);
             partialPotency(disc_consumer);
             
-            //printf("\n\nSoy disc con id: %d y calculé: \n",disc_consumer->id);
-            //printf("preal: %f\n",disc_consumer->pReal);
-            //printf("pimaginary: %f\n",disc_consumer->pImaginary);
-            //printf("pnoise: %f\n",disc_consumer->pNoise);
-            //printf("ppotency: %f\n",disc_consumer->pPotency);
-
+            printf("\n\nSoy disc con id: %d y calculé: \n",disc_consumer->id);
+            printf("preal: %f\n",disc_consumer->pReal);
+            printf("pimaginary: %f\n",disc_consumer->pImaginary);
+            printf("pnoise: %f\n",disc_consumer->pNoise);
+            printf("ppotency: %f\n",disc_consumer->pPotency);
 
             //printf("\n\nSoy disc ID: %d, terminando\n", disc_consumer->id);
             
@@ -191,39 +201,41 @@ void * consume(void * disc)
 
             if (flag == 1)
             {
-                printf("Soy el hijo de pid %d, procese %d visibilidades\n", disc_consumer->id, disc_consumer->quantityProcessed);
+                printf("Soy la hebra de pid %d, procese %d visibilidades\n", disc_consumer->id, disc_consumer->quantityProcessed);
             }
 
             break;
         }
 
-            //printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
+        //printf("Soy disc con id: %d y consumí\n",disc_consumer->id);
 
-            disc_consumer->quantityProcessed += disc_consumer->in;
-            partialRealAverage(disc_consumer);
-            partialImaginaryAverage(disc_consumer);
-            partialNoise(disc_consumer);
-            partialPotency(disc_consumer);
-            //printf("\n\nAAAAAAAAAAAAAAn ID: %d\n", disc_consumer->id);
+        disc_consumer->quantityProcessed += disc_consumer->in;
+        partialRealAverage(disc_consumer);
+        partialImaginaryAverage(disc_consumer);
+        partialNoise(disc_consumer);
+        partialPotency(disc_consumer);
+        //printf("\n\nAAAAAAAAAAAAAAn ID: %d\n", disc_consumer->id);
 
-            disc_consumer->in = 0;
+        disc_consumer->in = 0;
+        disc_consumer->not_full = 1;
+        disc_consumer->full = 0;
 
-            //printf("\n\nSoy disc con id: %d y calculé: \n",disc_consumer->id);
-            //printf("preal: %f\n",disc_consumer->pReal);
-            //printf("pimaginary: %f\n",disc_consumer->pImaginary);
-            //printf("pnoise: %f\n",disc_consumer->pNoise);
-            //printf("ppotency: %f\n",disc_consumer->pPotency);
-        
+        //printf("\n\nSoy disc con id: %d y calculé: \n",disc_consumer->id);
+        //printf("preal: %f\n",disc_consumer->pReal);
+        //printf("pimaginary: %f\n",disc_consumer->pImaginary);
+        //printf("pnoise: %f\n",disc_consumer->pNoise);
+        //printf("ppotency: %f\n",disc_consumer->pPotency);
+    
 
-            pthread_cond_signal(&(disc_consumer->full_cond));
-            pthread_mutex_unlock(&(mutex));
+        pthread_cond_signal(&(disc_consumer->full_cond));
+        pthread_mutex_unlock(&(disc_consumer->full_mutex));
+
     }while(end == 0);
-
-
+    //rintf("Soy la hebra: %d\n", disc_consumer->id);
 }
 
 
-void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** discs)
+void * readData(int disco, int width, int flag, char * nameFileIn, monitor ** discs)
 {
     FILE* fp;
     char buf[1024];
@@ -236,14 +248,14 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
         exit(-1);
     }
 
-    int * radioList = malloc(sizeof(int)*(radio + 1)); // radioList = [0, R1, R2, R3,..., Rn] -> n = numero de radios
+    int * radioList = malloc(sizeof(int)*(disco)); // radioList = [0, R1, R2, R3,..., Rn] -> n = numero de radios
 
-    for (int i = 0; i <= radio; ++i)
+    for (int i = 0; i < disco; ++i)
         radioList[i] = i*width;
    
     while (fgets(buf, sizeof(buf), fp) != NULL)
     {   
-        pthread_mutex_lock(&(mutex));
+        //pthread_mutex_lock(&(mutex));
         visibility_s * visibility = malloc(sizeof(visibility_s)); 
         buf[strlen(buf) - 1] = '\0'; // eat the newline fgets() stores
         visibility = buildVisibility(buf);
@@ -251,48 +263,69 @@ void * readData(int radio, int width, int flag, char * nameFileIn, monitor ** di
         origin_distance = distance(visibility);
         //printf("Entré a lock de productor? %f\n", visibility->u);
         i = 0;
-        while(i < radio)
+        while(i < disco)
         {
-
             if(radioList[i] <= origin_distance && origin_distance < radioList[i+1])
             {
+                pthread_mutex_lock(&(discs[i]->full_mutex));
                 //printf("Produje para el disco: %d\n",i);
-                if ((discs[i]->bufferSize - 1) == discs[i]->in)
+                while(discs[i]->full)
                 {
                     //printf("b1\n\n");
-                    pthread_mutex_unlock(&(mutex));
+                    //pthread_mutex_unlock(&(mutex));
                     //printf("b2\n\n");
-                    pthread_cond_signal(&(discs[i]->notfull_cond));
+                    //pthread_cond_signal(&(discs[i]->notfull_cond));
                     //printf("b3\n\n");
                     pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
                     //printf("b4\n\n");
                 }
-                printf("******** disc[%d]->in = %d ********\n", i, discs[i]->in);
+                //printf("******** disc[%d]->in = %d ********\n", i, discs[i]->in);
                 discs[i]->buffer[discs[i]->in] = visibility;
                 discs[i]->in += 1;
+                
+                if (discs[i]->in == discs[i]->bufferSize-1)
+                {
+                    discs[i]->full = 1;
+                    discs[i]->not_full = 0;
+                }
+                
+                //printf("Soy disc[i] con in = %d, con id: %d\n", discs[i]->in, discs[i]->id);
+                pthread_cond_signal(&(discs[i]->notfull_cond));
+                pthread_mutex_unlock(&(discs[i]->full_mutex));
+
             }
 
-            else if(i == (radio - 1) && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
+            else if(i == (disco - 1) && radioList[i] <= origin_distance) //Este if es necesario para tomar al último hijo.
             {   
-                //printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i+1);
-                if ((discs[i+1]->bufferSize - 1) == discs[i+1]->in)
+                pthread_mutex_lock(&(discs[i]->full_mutex));
+
+                //printf("Produje con origin_distance: %f, para el disco: %d\n", origin_distance, i);
+                while(discs[i]->full)
                 {
-                    pthread_mutex_unlock(&(mutex));
-                    pthread_cond_signal(&(discs[i+1]->notfull_cond))    ;
-                    pthread_cond_wait(&(discs[i+1]->full_cond),&(discs[i+1]->full_mutex));
+                    //pthread_mutex_unlock(&(mutex));
+                    //pthread_cond_signal(&(discs[i]->notfull_cond));
+                    pthread_cond_wait(&(discs[i]->full_cond),&(discs[i]->full_mutex));
                 }
-                discs[i+1]->buffer[discs[i+1]->in] = visibility;
+                discs[i]->buffer[discs[i]->in] = visibility;
                 //printf("Soy visibility->u: %f, visibility->v: %f\n\n", visibility->u, visibility->v);
-                //printf("In: %d\n", discs[i+1]->in );
-                discs[i+1]->in += 1;
+                //printf("In: %d\n", discs[i]->in );
+                discs[i]->in += 1;
+                pthread_cond_signal(&(discs[i]->notfull_cond));
+                pthread_mutex_unlock(&(discs[i]->full_mutex));
                 //printf("\n\naaaaaaaaaaaaaaaaaaAAAAAAAAAAAAAAAAAa: %d\n\n",discs[i+1]->in);
-                break;
             }
             i++;
+
         }
 
-        pthread_mutex_unlock(&(mutex));           
+        //pthread_mutex_unlock(&(mutex));           
     }
+    end = 1;
+    for (int i = 0; i < disco; i++)
+    {
+        discs[i]->not_full = 0;
+        pthread_cond_signal(&(discs[i]->notfull_cond));
+    }    
 
     fclose(fp);
 }
@@ -319,15 +352,13 @@ void writeData(int number, float *results, char *outFileName)
 	fclose(file);
 }
 
-monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, char *nameFileIn)
+monitor ** initializeMonitors(int disco, int width, int flag, int bufferSize, char *nameFileIn)
 {
-    monitor ** monitors = malloc(sizeof(monitor)*(radio + 1));
-    monitor * mon;
-
-    for (int i = 0; i <= radio; i++)
+    monitor ** monitors = (monitor**)malloc(sizeof(monitor*)*(disco));
+    for (int i = 0; i < disco; i++)
     {
-        mon = malloc(sizeof(monitor));
-        mon->buffer = malloc(sizeof(visibility_s)*bufferSize);
+        monitor * mon = malloc(sizeof(monitor));
+        mon->buffer = (visibility_s**)malloc(sizeof(visibility_s*)*bufferSize);
         mon->in = 0;
         mon->bufferSize = bufferSize;
         mon->quantityPImaginary = 0;
@@ -337,86 +368,73 @@ monitor **initializeMonitors(int radio, int width, int flag, int bufferSize, cha
         mon->pReal = 0;
         mon->pImaginary = 0;
         mon->id = i;
+        mon->full = 0;
+        mon->not_full = 1;
         pthread_cond_init(&mon->notfull_cond, NULL);
         pthread_cond_init(&mon->full_cond, NULL);
-        pthread_mutex_init(&mon->notfull_mutex, NULL);
         pthread_mutex_init(&mon->full_mutex, NULL);
         monitors[i] = mon;
-    }
-
+    }    
     return monitors;
 }
 
 
 int main(int argc, char *argv[])
 {    
-    int otp = 0, radio = 0, width = 0, bufferSize = 0;
+    int otp = 0, disco = 0, width = 0, bufferSize = 0;
     flag = 0;
     char *nameFileIn = NULL, *nameFileOut = NULL;
 
-    while((otp = getopt(argc, argv, ":i:o:n:d:s:b")) != -1)
+    while((otp = getopt(argc, argv, "i:o:n:d:s:b")) != -1)
     {
         if(otp == 'i') nameFileIn = optarg;
         else if(otp == 'o') nameFileOut = optarg;
-        else if(otp == 'n') radio = atoi(optarg);
+        else if(otp == 'n') disco = atoi(optarg);
         else if(otp == 'd') width = atoi(optarg);
         else if(otp == 's') bufferSize = atoi(optarg);
         else if(otp == 'b') flag = 1;
         else
         {
-            perror("Invalid Sintaxis");
+            printf("Invalid Sintaxis\n");
             exit(-1);
         }
     }
-    if((otp == -1 && argc == 1) || radio <= 0 || width <= 0 || bufferSize <= 0)
+    if((otp == -1 && argc == 1) || disco <= 0 || width <= 0 || bufferSize <= 0)
     {
-       perror("Invalid Sintaxis");
+       printf("Invalid Sintaxis\n");
         exit(-1); 
     }
 
-    pthread_mutex_init(&mutex, NULL);
-    monitor ** monitors = initializeMonitors(radio, width, flag, bufferSize, nameFileIn);
-    discs_properties = malloc(sizeof(float*)*(radio + 1));
+    //pthread_mutex_init(&mutex, NULL);
+    monitor ** monitors = initializeMonitors(disco, width, flag, bufferSize, nameFileIn);
+    printf("1\n");
+
+    discs_properties = malloc(sizeof(float*)*disco);
+    printf("2\n");
 
     pthread_t * disc_threads;
-    disc_threads = malloc(sizeof(pthread_t)*(radio + 1));
-    for (int i = 0; i <= radio; i++)
+    disc_threads = malloc(sizeof(pthread_t)*disco);
+        printf("3\n");
+
+    for (int i = 0; i < disco; i++)
     {
         pthread_create(&disc_threads[i], NULL, consume, (void *)monitors[i]);
     }
+        printf("4\n");
 
-    readData(radio,width,flag, nameFileIn, monitors);
-    end = 1;
-
+    readData(disco,width,flag, nameFileIn, monitors);
     int blockeds;
-    while(1)
+    printf("5\n");
+    for (int i = 0; i < disco; i++)
     {
-        blockeds = 0;
-        for (int i = 0; i <= radio; i++)
-        {
-            if (monitors[i]->blocked == 1)
-            {
-                blockeds++;
-            }
-        }
-            
-        if (blockeds == (radio + 1))
-        {
-            for (int i = 0; i <= radio; i++)
-            {
-                pthread_cond_signal(&(monitors[i]->notfull_cond));
-                pthread_join(disc_threads[i], NULL);
-            }
-            break;
-        }
+        pthread_join(disc_threads[i], NULL);
     }
-
     createOutFile(nameFileOut);
 
     //discs_properties[0];
     //printf("aaaaaaaa: %f", discs_properties[0][0]);
 
-    for (int i = 0; i <= radio; i++)
+    for (int i = 0; i < disco; i++)
     {
         writeData(i+1, discs_properties[i],nameFileOut);
     }
